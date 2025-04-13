@@ -48,34 +48,42 @@ function App() {
   return (
     <div style={{ padding: 20 }}>
       <div>
-        <p>
-          Upload Images:{' '}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={onImageUpload}
-          />
-        </p>
-
         {previewList.length > 0 && (
-          <div style={{ marginTop: 10 }}>
-            {previewList.map((url, idx) => (
+        <div style={{ marginTop: 10 }}>
+          {previewList.map((url, idx) => (
+            <div
+              key={idx}
+              style={{
+                marginBottom: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'start',
+              }}
+            >
+              <span style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                참고이미지 {idx + 1}
+              </span>
               <img
-                key={idx}
                 src={url}
                 alt={`preview-${idx}`}
                 style={{
                   maxWidth: '100%',
-                  marginBottom: 8,
                   borderRadius: 4,
                   border: '1px solid #ccc',
                 }}
               />
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
+      )}
       </div>
+
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={onImageUpload}
+      />
 
       <button onClick={onCancel} style={{ marginTop: '20px' }}>
         Cancel
