@@ -1,9 +1,8 @@
-figma.showUI(__html__);
+figma.showUI(__html__, { width: 400, height: 300 });
 
-figma.ui.onmessage = (msg) => {
+figma.ui.onmessage = async (msg) => {
   if (msg.type === 'create-rectangles') {
-    const nodes = [];
-
+    const nodes: SceneNode[] = [];
     for (let i = 0; i < msg.count; i++) {
       const rect = figma.createRectangle();
       rect.x = i * 150;
@@ -11,16 +10,25 @@ figma.ui.onmessage = (msg) => {
       figma.currentPage.appendChild(rect);
       nodes.push(rect);
     }
-
     figma.currentPage.selection = nodes;
     figma.viewport.scrollAndZoomIntoView(nodes);
-
-    // This is how figma responds back to the ui
-    figma.ui.postMessage({
-      type: 'create-rectangles',
-      message: `Created ${msg.count} Rectangles`,
-    });
   }
 
-  figma.closePlugin();
+  if (msg.type === 'insert-image') {
+    const bytes = await fetch(msg.dataUrl).then(res => res.arrayBuffer());
+    const image = figma.createImage(new Uint8Array(bytes));
+    const rect = figma.createRectangle();
+    rect.resize(300, 300);
+    rect.fills = [{
+      type: 'IMAGE',
+      scaleMode: 'FILL',
+      imageHash: image.hash
+    }];
+    figma.currentPage.appendChild(rect);
+    figma.viewport.scrollAndZoomIntoView([rect]);
+  }
+
+  if (msg.type === 'cancel') {
+    figma.closePlugin();
+  }
 };

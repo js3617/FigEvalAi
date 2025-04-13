@@ -1,6 +1,6 @@
 {
-  "name": "Figma Plugin Template",
-  "id": "00000000",
+  "name": "FigEval",
+  "id": "1493170128658569904",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",

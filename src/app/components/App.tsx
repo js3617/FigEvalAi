@@ -19,6 +19,26 @@ function App() {
     parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
   };
 
+  const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      parent.postMessage(
+        {
+          pluginMessage: {
+            type: 'insert-image',
+            dataUrl,
+          },
+        },
+        '*'
+      );
+    };
+    reader.readAsDataURL(file);
+  };  
+
   React.useEffect(() => {
     // This is how we read messages sent from the plugin controller
     window.onmessage = (event) => {
@@ -36,6 +56,11 @@ function App() {
       <p>
         Count: <input ref={countRef} />
       </p>
+      <div>
+        <p>
+          Upload Image: <input type="file" accept="image/*" onChange={onImageUpload} />
+        </p>
+      </div>
       <button id="create" onClick={onCreate}>
         Create
       </button>
