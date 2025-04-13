@@ -1,31 +1,25 @@
-import React from 'react';
-import logo from '../assets/logo.svg';
+import React, { useState } from 'react';
 import '../styles/ui.css';
 
 function App() {
-  const textbox = React.useRef<HTMLInputElement>(undefined);
 
-  const countRef = React.useCallback((element: HTMLInputElement) => {
-    if (element) element.value = '5';
-    textbox.current = element;
-  }, []);
-
-  const onCreate = () => {
-    const count = parseInt(textbox.current.value, 10);
-    parent.postMessage({ pluginMessage: { type: 'create-rectangles', count } }, '*');
-  };
+  const [previewList, setPreviewList] = useState<string[]>([]); //미리 보기 저장
 
   const onCancel = () => {
     parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
   };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
   
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+
+        setPreviewList((prev) => [...prev, dataUrl]);
+        
       parent.postMessage(
         {
           pluginMessage: {
@@ -37,7 +31,9 @@ function App() {
       );
     };
     reader.readAsDataURL(file);
-  };  
+  });
+  e.target.value = '';
+};  
 
   React.useEffect(() => {
     // This is how we read messages sent from the plugin controller
@@ -50,21 +46,40 @@ function App() {
   }, []);
 
   return (
-    <div>
-      <img src={logo} />
-      <h2>Rectangle Creator</h2>
-      <p>
-        Count: <input ref={countRef} />
-      </p>
+    <div style={{ padding: 20 }}>
       <div>
         <p>
-          Upload Image: <input type="file" accept="image/*" onChange={onImageUpload} />
+          Upload Images:{' '}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={onImageUpload}
+          />
         </p>
+
+        {previewList.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            {previewList.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`preview-${idx}`}
+                style={{
+                  maxWidth: '100%',
+                  marginBottom: 8,
+                  borderRadius: 4,
+                  border: '1px solid #ccc',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      <button id="create" onClick={onCreate}>
-        Create
+
+      <button onClick={onCancel} style={{ marginTop: '20px' }}>
+        Cancel
       </button>
-      <button onClick={onCancel}>Cancel</button>
     </div>
   );
 }
