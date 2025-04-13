@@ -5,6 +5,19 @@ function App() {
 
   const [previewList, setPreviewList] = useState<string[]>([]); //미리 보기 저장
 
+  const uploadToLocal = async (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await fetch('http://localhost:3000/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await res.json();
+    console.log('서버 응답:', result);
+  };
+
   const onCancel = () => {
     parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
   };
@@ -29,6 +42,7 @@ function App() {
         },
         '*'
       );
+      uploadToLocal(file);
     };
     reader.readAsDataURL(file);
   });
@@ -85,8 +99,8 @@ function App() {
         onChange={onImageUpload}
       />
 
-      <button onClick={onCancel} style={{ marginTop: '20px' }}>
-        Cancel
+      <button onClick={onCancel} style={{ marginTop: '20px', cursor: "pointer" }}>
+        취소하기
       </button>
     </div>
   );
