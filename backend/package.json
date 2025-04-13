@@ -1,6 +1,6 @@
 
 {
-  "name": "figma-upload-server",
+  "name": "backend",
   "version": "1.0.0",
   "description": "Local server to handle image uploads from Figma Plugin UI",
   "main": "server.js",
