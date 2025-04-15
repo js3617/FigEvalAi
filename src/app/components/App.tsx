@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { dataURLtoBlob } from '../utils/dataURLtoBlob';
+
 import '../styles/ui.css';
 
 import { Btn } from '../styles/Button'
@@ -18,6 +20,7 @@ function App() {
     parent.postMessage({ pluginMessage: { type: 'export-selected-frame' } }, '*');
   };
 
+  //참고 이미지 업로드
   const uploadToLocal = async (file: File, dataUrl: string) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -58,6 +61,7 @@ function App() {
     e.target.value = '';
   };
 
+  // Frame 선택 후 이미지 저장
   useEffect(() => {
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
@@ -84,17 +88,7 @@ function App() {
     };
   }, []);
 
-  //server에 전송할 수 있는 파일 형태로 변경
-  function dataURLtoBlob(dataUrl: string) {
-    const arr = dataUrl.split(',');
-    const mime = arr[0].match(/:(.*?);/)![1]; //MIME 타입 출력(image/png)
-    const bstr = atob(arr[1]); //디코딩
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) u8arr[n] = bstr.charCodeAt(n);
-    return new Blob([u8arr], { type: mime });
-  }
-
+  // 참고 이미지 삭제 기능
   const removeImage = async (index: number, filename: string) => {
     try {
       await fetch(`http://localhost:3000/upload/ref/${filename}`, {
