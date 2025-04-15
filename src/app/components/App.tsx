@@ -1,38 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../styles/ui.css';
+
+import { Btn } from '../styles/Button'
+import { BtnWrap, BtnStartWrap } from '../styles/Layout'
 
 function App() {
 
-  const [previewList, setPreviewList] = useState<string[]>([]); //미리 보기 저장
+  const [previewList, setPreviewList] = useState<{ url: string; filename: string }[]>([]); //미리 보기 저장
+  
+  const fileInputRef = useRef(null); // 파일 입력 참조
 
-  const uploadToLocal = async (file: File) => {
+  const onCancel = () => {
+    parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+  };
+
+  const selectFrame = () => {
+    parent.postMessage({ pluginMessage: { type: 'export-selected-frame' } }, '*');
+  };
+
+  const uploadToLocal = async (file: File, dataUrl: string) => {
     const formData = new FormData();
     formData.append('image', file);
 
-    const res = await fetch('http://localhost:3000/upload', {
+    const res = await fetch('http://localhost:3000/upload/ref', {
       method: 'POST',
       body: formData,
     });
 
     const result = await res.json();
     console.log('서버 응답:', result);
-  };
 
-  const onCancel = () => {
-    parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+    setPreviewList((prev) => [...prev, { url: dataUrl, filename: result.filename }]);
   };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+      if (!files || files.length === 0) return;
   
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result as string;
-
-        setPreviewList((prev) => [...prev, dataUrl]);
-        
+        // setPreviewList((prev) => [...prev, { url: dataUrl, filename: result.filename }]);
       parent.postMessage(
         {
           pluginMessage: {
@@ -42,29 +51,70 @@ function App() {
         },
         '*'
       );
-      uploadToLocal(file);
-    };
-    reader.readAsDataURL(file);
-  });
-  e.target.value = '';
-};  
+        uploadToLocal(file, dataUrl);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
 
-  React.useEffect(() => {
-    // This is how we read messages sent from the plugin controller
+  useEffect(() => {
     window.onmessage = (event) => {
-      const { type, message } = event.data.pluginMessage;
-      if (type === 'create-rectangles') {
-        console.log(`Figma Says: ${message}`);
+      const msg = event.data.pluginMessage;
+      if (msg?.type === 'exported-image') {
+        const { dataUrl, filename } = msg;
+  
+        // base64 → Blob 변환
+        const blob = dataURLtoBlob(dataUrl);
+        const file = new File([blob], filename, { type: 'image/png' });
+  
+        // 서버로 전송
+        const formData = new FormData();
+        formData.append('image', file);
+  
+        fetch('http://localhost:3000/upload/frame', {
+          method: 'POST',
+          body: formData,
+        })
+          .then(res => res.json())
+          .then(result => {
+            console.log('서버 응답:', result);
+          });
       }
     };
   }, []);
+
+  //server에 전송할 수 있는 파일 형태로 변경
+  function dataURLtoBlob(dataUrl: string) {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)![1]; //MIME 타입 출력(image/png)
+    const bstr = atob(arr[1]); //디코딩
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  const removeImage = async (index: number, filename: string) => {
+    try {
+      await fetch(`http://localhost:3000/upload/ref/${filename}`, {
+        method: 'DELETE',
+      });
+      console.log('서버에서 삭제됨:', filename);
+    } catch (err) {
+      console.error('삭제 실패:', err);
+    }
+  
+    setPreviewList(prev => prev.filter((_, i) => i !== index));
+  };
+  
 
   return (
     <div style={{ padding: 20 }}>
       <div>
         {previewList.length > 0 && (
         <div style={{ marginTop: 10 }}>
-          {previewList.map((url, idx) => (
+          {previewList.map((item, idx) => (
             <div
               key={idx}
               style={{
@@ -78,7 +128,7 @@ function App() {
                 참고이미지 {idx + 1}
               </span>
               <img
-                src={url}
+                src={item.url}
                 alt={`preview-${idx}`}
                 style={{
                   maxWidth: '100%',
@@ -86,22 +136,29 @@ function App() {
                   border: '1px solid #ccc',
                 }}
               />
+            <Btn onClick={() => removeImage(idx, item.filename)}>삭제하기</Btn>
             </div>
           ))}
         </div>
       )}
       </div>
 
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        onChange={onImageUpload}
-      />
-
-      <button onClick={onCancel} style={{ marginTop: '20px', cursor: "pointer" }}>
-        취소하기
-      </button>
+      <BtnStartWrap>
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          multiple
+          onChange={onImageUpload}
+          style={{ display: "none" }}
+        />
+        <Btn onClick={()=> fileInputRef.current.click()}>참고이미지 추가하기</Btn>
+      </BtnStartWrap>
+      <textarea/>
+      <BtnWrap>
+        <Btn onClick={selectFrame}>선택된 Frame 저장</Btn>
+        <Btn onClick={onCancel}>취소하기</Btn>
+      </BtnWrap>
     </div>
   );
 }
