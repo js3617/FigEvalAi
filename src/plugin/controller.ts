@@ -41,4 +41,8 @@ figma.ui.onmessage = async (msg) => {
   if (msg.type === 'cancel') {
     figma.closePlugin();
   }
+
+  if (msg.type === 'notify') {
+    figma.notify(msg.message);
+  }  
 };
