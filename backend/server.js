@@ -5,11 +5,19 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const app = express();
 const PORT = 3000;
+const URL = 'http://localhost:3000';
+const app = express();
 
 // CORS 설정 (Figma 플러그인에서 접근 가능하게)
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+app.use(express.json({ limit: '10mb' })); // 또는 필요에 따라 더 크게
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 //uploads 디렉토리 없으면 생성
 const uploadDir = path.join(__dirname, 'uploads/ref');
@@ -71,6 +79,42 @@ app.delete('/upload/ref/:filename', (req, res) => {
   });
 });
 
+app.post("/upload/address", (req, res) => {
+  const { refImages, frameImage } = req.body;
+
+  console.log("refImages:", refImages);
+  console.log("frameImage:", frameImage);
+
+  const refResults = refImages.map((item, idx) => {
+    const fileName = path.basename(item.url);
+    const filePath = path.join(__dirname, 'uploads/ref', fileName);
+    const exists = fs.existsSync(filePath);
+
+    const styles = Array.isArray(item.styles) ? item.styles : [];
+
+    console.log(`${idx + 1}. ${fileName} => 존재: ${exists}`);
+    console.log(`선택된 스타일 요소: ${styles.join(', ')}`);
+
+    return { fileName, exists, styles };
+  });
+  
+  const frameFileName = path.basename(frameImage);
+  console.log(frameFileName);
+  const frameFilePath = path.join(__dirname, 'uploads/frame', frameFileName);
+  console.log(frameFilePath);
+  const frameExists = fs.existsSync(frameFilePath);
+  console.log(frameExists);
+  console.log(`${frameFileName} => 존재: ${frameExists}`);
+
+  res.json({
+    refResults,
+    frameResult: {
+      fileName: frameFileName,
+      exists: frameExists,
+    }
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`서버 실행 중: http://localhost:${PORT}`);
+  console.log(`서버 실행 중: ${URL}:${PORT}`);
 });
