@@ -80,10 +80,11 @@ app.delete('/upload/ref/:filename', (req, res) => {
 });
 
 app.post("/upload/address", (req, res) => {
-  const { refImages, frameImage } = req.body;
+  const { refImages, frameImage, requirements } = req.body;
 
   console.log("refImages:", refImages);
   console.log("frameImage:", frameImage);
+  console.log("requirements:", requirements);
 
   const refResults = refImages.map((item, idx) => {
     const fileName = path.basename(item.url);
@@ -111,7 +112,8 @@ app.post("/upload/address", (req, res) => {
     frameResult: {
       fileName: frameFileName,
       exists: frameExists,
-    }
+    },
+    requirements
   });
 });
 
