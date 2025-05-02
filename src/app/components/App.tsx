@@ -8,7 +8,8 @@ import Result from './Result';
 import '../styles/ui.css';
 
 import { Btn } from '../styles/Button'
-import { BtnWrap, BtnStartWrap } from '../styles/Layout'
+import { BtnWrap, BtnStartWrap, ColumnGap, TextArea } from '../styles/Layout'
+import { TitleFont } from '../styles/Font'
 
 type ResultData = {
   frameResult: {
@@ -18,6 +19,7 @@ type ResultData = {
   refResults: {
     fileName: string;
     exists: boolean;
+    styles: string[];
   }[];
 };
 
@@ -29,6 +31,8 @@ function App() {
   const [frameImage, setFrameImage] = useState<{ url: string; filename: string } | null>(null);
   
   const fileInputRef = useRef(null); // 파일 입력 참조
+
+  const [requirements, setRequirements] = useState(''); // 요청 데이터 저장
 
   const [selectedStyles, setSelectedStyles] = useState<StyleOption[][]>([]);
 
@@ -137,6 +141,13 @@ function App() {
       return;
     }
 
+    // 스타일 요소 선택 안한 경우
+    const noneStyles = selectedStyles.some(styles => !styles || styles.length === 0);
+    if (noneStyles) {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: '각 참고 이미지에 최소 하나의 스타일 요소를 선택해주세요.' } }, '*');
+      return;
+    }
+
     const refImagesData = previewList.map((item, idx) => ({
       url: `/uploads/ref/${item.filename}`,
       styles: selectedStyles[idx] || []
@@ -149,6 +160,7 @@ function App() {
     const res = await ApiClient.post('/upload/address', {
       refImages: refImagesData,
       frameImage: frameImagesUrl,
+      requirements,
     });
     const result = res.data;
     setResultData({
@@ -161,10 +173,22 @@ function App() {
   // useEffect(() => {
   //   setSelectedStyles(previewList.map(() => '색상')); // 기본값 '색상'
   // }, [previewList.length]);
-  
+
+  // 초기화(다시 시작)
+  const resetAll = () => {
+    setResultData(null);
+    setPreviewList([]);
+    setFrameImage(null);
+    setSelectedStyles([]);
+    setRequirements('');
+  };
 
   if (resultData) {
-    return <Result data={resultData} onBack={() => setResultData(null)} />;
+    return <Result 
+      data={resultData} 
+      onBack={() => setResultData(null)} 
+      onReset={resetAll} 
+    />
   }
 
   return (
@@ -182,9 +206,9 @@ function App() {
                 alignItems: 'start',
               }}
             >
-              <span style={{ fontWeight: 'bold', marginBottom: 4 }}>
+              <TitleFont>
                 참고이미지 {idx + 1}
-              </span>
+              </TitleFont>
               <img
                 src={item.url}
                 alt={`preview-${idx}`}
@@ -235,7 +259,18 @@ function App() {
         />
         <Btn onClick={()=> fileInputRef.current.click()}>참고이미지 추가하기</Btn>
       </BtnStartWrap>
-      <textarea/>
+
+      <ColumnGap>
+        <TitleFont>
+          추가 디자인 요구 사항
+        </TitleFont>
+        <TextArea 
+          value={requirements}
+          onChange={(e) => setRequirements(e.target.value)}
+          placeholder="추가 요구 사항을 입력하세요."
+        />
+      </ColumnGap>
+
       <BtnWrap>
         <Btn onClick={onAddress}>검증 진행하기</Btn>
         <Btn onClick={selectFrame}>선택된 Frame 저장</Btn>
