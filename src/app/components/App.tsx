@@ -8,7 +8,7 @@ import Result from './Result';
 import '../styles/ui.css';
 
 import { Btn } from '../styles/Button'
-import { BtnWrap, BtnStartWrap, ColumnGap, TextArea } from '../styles/Layout'
+import { Content, RefContent, BtnWrap, BtnStartWrap, RowGap, ColumnGap, TextArea } from '../styles/Layout'
 import { TitleFont } from '../styles/Font'
 
 type ResultData = {
@@ -192,62 +192,66 @@ function App() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <Content>
       <div>
         {previewList.length > 0 && (
         <div style={{ marginTop: 10 }}>
           {previewList.map((item, idx) => (
-            <div
-              key={idx}
-              style={{
-                marginBottom: 16,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'start',
-              }}
-            >
+            <RefContent key={idx}>
               <TitleFont>
                 참고이미지 {idx + 1}
               </TitleFont>
+
+              <RowGap>
+              {/* 참고 이미지 미리보기 */}
               <img
                 src={item.url}
                 alt={`preview-${idx}`}
                 style={{
-                  maxWidth: '100%',
+                  maxWidth: '70%',
                   borderRadius: 4,
                   border: '1px solid #ccc',
                 }}
               />
 
-              <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-                {styleOptions.map((option) => (
-                  <label key={option}>
-                    <input
-                      type="checkbox"
-                      checked={selectedStyles[idx]?.includes(option)}
-                      onChange={(e) => {
-                        const updated = [...selectedStyles];
-                        const current = new Set(updated[idx] || []);
-                        if (e.target.checked) {
-                          current.add(option);
-                        } else {
-                          current.delete(option);
-                        }
-                        updated[idx] = Array.from(current);
-                        setSelectedStyles(updated);
-                      }}
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            <Btn onClick={() => removeImage(idx, item.filename)}>삭제하기</Btn>
-            </div>
+              {/* 스타일 요소 선택 */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+                {/* <div style={{ display: 'grid', gap: 10, marginBottom: 8, gridTemplateColumns: 'repeat(3, 1fr)' }}> */}
+                  <ColumnGap>
+                    <TitleFont>반영 스타일 요소</TitleFont>
+                    {styleOptions.map((option) => (
+                      <label key={option}>
+                        <input
+                          type="checkbox"
+                          checked={selectedStyles[idx]?.includes(option)}
+                          onChange={(e) => {
+                            const updated = [...selectedStyles];
+                            const current = new Set(updated[idx] || []);
+                            if (e.target.checked) {
+                              current.add(option);
+                            } else {
+                              current.delete(option);
+                            }
+                            updated[idx] = Array.from(current);
+                            setSelectedStyles(updated);
+                          }}
+                        />
+                        {option}
+                      </label>
+                    ))}
+                    </ColumnGap>
+                </div>
+              </RowGap>
+
+              {/* 참고 이미지 삭제 버튼 */}
+              <Btn onClick={() => removeImage(idx, item.filename)}>삭제하기</Btn>
+            </RefContent>
           ))}
         </div>
       )}
       </div>
 
+      {/* 참고 이미지 추가 버튼 */}
       <BtnStartWrap>
         <input
           type="file"
@@ -272,11 +276,11 @@ function App() {
       </ColumnGap>
 
       <BtnWrap>
-        <Btn onClick={onAddress}>검증 진행하기</Btn>
         <Btn onClick={selectFrame}>선택된 Frame 저장</Btn>
+        <Btn onClick={onAddress}>검증 진행하기</Btn>
         <Btn onClick={onCancel}>취소하기</Btn>
       </BtnWrap>
-    </div>
+    </Content>
   );
 }
 

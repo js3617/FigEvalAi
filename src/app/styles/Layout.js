@@ -1,5 +1,20 @@
 import styled from "styled-components";
 
+const Content = styled.div`
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px;
+    gap: 20px;
+`;
+
+const RefContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    gap: 10px;
+`;
+
 const BtnWrap = styled.div`
     display: flex;
     justify-content: center;
@@ -18,6 +33,7 @@ const ColumnGap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 5px;
+    justify-content: baseline;
 `;
 
 const RowGap = styled.div`
@@ -35,4 +51,4 @@ const TextArea = styled.textarea`
     resize: none;
 `;
 
-export { BtnWrap, BtnStartWrap, ColumnGap, RowGap, TextArea };
+export { Content, RefContent, BtnWrap, BtnStartWrap, ColumnGap, RowGap, TextArea };
