@@ -12,6 +12,7 @@ interface ResultData {
         fileName: string;
         exists: boolean;
         styles: string[];
+        gptResult?: string;
     }[];
 }
 
@@ -44,6 +45,14 @@ export default function Result({ data, onBack, onReset }: Props) {
                 style={{ maxWidth: "100%", border: '1px solid #ccc' }}
                 />
                 <p>선택한 스타일: {res.styles.join(', ')}</p>
+                {res.gptResult ? (
+                    <div style={{ marginTop: 12, background: '#f7f7f7', padding: 12, borderRadius: 4 }}>
+                        <strong>GPT 비교 결과:</strong>
+                        <p style={{ whiteSpace: 'pre-wrap' }}>{res.gptResult}</p>
+                    </div>
+                ) : (
+                    <p style={{ color: 'gray' }}>GPT 결과 없음</p>
+                )}
             </div>
             ))}
     

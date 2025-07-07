@@ -5,6 +5,8 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+const { compareFrameWithRef } = require('./gptConfig'); // gptConfig.js에서 compareFrameWithRef 함수 가져오기
+
 const PORT = 3000;
 const URL = 'http://localhost:3000';
 const app = express();
@@ -79,43 +81,101 @@ app.delete('/upload/ref/:filename', (req, res) => {
   });
 });
 
-app.post("/upload/address", (req, res) => {
-  const { refImages, frameImage, requirements } = req.body;
+app.post("/upload/address", async (req, res) => {
+  const { refImages, frameImage, requirements, extractedStyles } = req.body;
 
-  console.log("refImages:", refImages);
-  console.log("frameImage:", frameImage);
-  console.log("requirements:", requirements);
+  const frameFileName = path.basename(frameImage);
+  const framePath = path.join(__dirname, 'uploads/frame', frameFileName);
+  const frameExists = fs.existsSync(framePath);
 
-  const refResults = refImages.map((item, idx) => {
-    const fileName = path.basename(item.url);
-    const filePath = path.join(__dirname, 'uploads/ref', fileName);
-    const exists = fs.existsSync(filePath);
+  if (!frameExists) {
+    return res.status(400).json({ error: 'frameImage 파일이 존재하지 않습니다.' });
+  }
 
+  const refResults = [];
+
+  for (const item of refImages) {
+    const refFileName = path.basename(item.url);
+    const refPath = path.join(__dirname, 'uploads/ref', refFileName);
+    const exists = fs.existsSync(refPath);
     const styles = Array.isArray(item.styles) ? item.styles : [];
 
-    console.log(`${idx + 1}. ${fileName} => 존재: ${exists}`);
-    console.log(`선택된 스타일 요소: ${styles.join(', ')}`);
+    if (!exists) {
+      refResults.push({
+        fileName: refFileName,
+        exists: false,
+        gptResult: '이미지 없음'
+      });
+      continue;
+    }
 
-    return { fileName, exists, styles };
-  });
-  
-  const frameFileName = path.basename(frameImage);
-  console.log(frameFileName);
-  const frameFilePath = path.join(__dirname, 'uploads/frame', frameFileName);
-  console.log(frameFilePath);
-  const frameExists = fs.existsSync(frameFilePath);
-  console.log(frameExists);
-  console.log(`${frameFileName} => 존재: ${frameExists}`);
+    try {
+      const gptResult = await compareFrameWithRef(frameFileName, refFileName, styles, requirements, extractedStyles);
+      refResults.push({
+        fileName: refFileName,
+        exists: true,
+        styles,
+        gptResult
+      });
+    } catch (err) {
+      console.error(`GPT 비교 실패 (${refFileName}):`, err.message);
+      refResults.push({
+        fileName: refFileName,
+        exists: true,
+        styles,
+        gptResult: 'GPT 응답 실패'
+      });
+    }
+  }
 
   res.json({
-    refResults,
     frameResult: {
       fileName: frameFileName,
-      exists: frameExists,
+      exists: true
     },
-    requirements
+    refResults,
+    requirements,
+    frameStyles: extractedStyles,
   });
 });
+
+// app.post("/upload/address", (req, res) => {
+//   const { refImages, frameImage, requirements } = req.body;
+
+//   console.log("refImages:", refImages);
+//   console.log("frameImage:", frameImage);
+//   console.log("requirements:", requirements);
+
+//   const refResults = refImages.map((item, idx) => {
+//     const fileName = path.basename(item.url);
+//     const filePath = path.join(__dirname, 'uploads/ref', fileName);
+//     const exists = fs.existsSync(filePath);
+
+//     const styles = Array.isArray(item.styles) ? item.styles : [];
+
+//     console.log(`${idx + 1}. ${fileName} => 존재: ${exists}`);
+//     console.log(`선택된 스타일 요소: ${styles.join(', ')}`);
+
+//     return { fileName, exists, styles };
+//   });
+  
+//   const frameFileName = path.basename(frameImage);
+//   console.log(frameFileName);
+//   const frameFilePath = path.join(__dirname, 'uploads/frame', frameFileName);
+//   console.log(frameFilePath);
+//   const frameExists = fs.existsSync(frameFilePath);
+//   console.log(frameExists);
+//   console.log(`${frameFileName} => 존재: ${frameExists}`);
+
+//   res.json({
+//     refResults,
+//     frameResult: {
+//       fileName: frameFileName,
+//       exists: frameExists,
+//     },
+//     requirements
+//   });
+// });
 
 app.listen(PORT, () => {
   console.log(`서버 실행 중: ${URL}:${PORT}`);

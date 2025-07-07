@@ -17,4 +17,11 @@ const Btn = styled.button`
     cursor: pointer;
 `;
 
-export { Btn };
+const CancelBtn = styled(Btn)`
+    background: #ff3232;
+    color: #fff;
+    border: none;
+    box-shadow: none;
+    `;
+
+export { Btn, CancelBtn };
