@@ -41,6 +41,14 @@ function App() {
 
   const [selectedStyles, setSelectedStyles] = useState<StyleOption[][]>([]); // 선택된 스타일 요소 저장
 
+  const [userId, setUserId] = useState(''); // 사용자 ID 저장
+  const userIdRef = useRef(userId); // userId 참조를 위한 ref
+
+  // userId가 변경될 때마다 ref 업데이트
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
   // 스타일 추출
   const [extractedStyles, setExtractedStyles] = useState<any[]>([]);
 
@@ -53,6 +61,10 @@ function App() {
   };
 
   const selectFrame = () => {
+    if (!userId.trim()) {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: '실험자 번호를 먼저 입력해주세요.' } }, '*');
+      return;
+    }
     parent.postMessage({ pluginMessage: { type: 'export-selected-frame' } }, '*'),
     parent.postMessage({ pluginMessage: { type: 'extract-css' } }, '*');
   };
@@ -61,6 +73,7 @@ function App() {
   const uploadToLocal = async (file: File, dataUrl: string) => {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('userId', userId);
 
     const res = await ApiClient.post('/upload/ref', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -74,6 +87,11 @@ function App() {
   };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!userId.trim()) {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: '실험자 번호를 먼저 입력해주세요.' } }, '*');
+      return;
+    }
+
     const files = e.target.files;
       if (!files || files.length === 0) return;
   
@@ -105,13 +123,23 @@ function App() {
       if (msg?.type === 'exported-image') {
         const { dataUrl, filename } = msg;
   
+                // userId가 없으면 에러 메시지
+        const currentUserId = userIdRef.current;
+        if (!currentUserId.trim()) {
+          parent.postMessage({ pluginMessage: { type: 'notify', message: '실험자 번호를 먼저 입력해주세요.' } }, '*');
+          return;
+        }
+
         // base64 → Blob 변환
         const blob = dataURLtoBlob(dataUrl);
         const file = new File([blob], filename, { type: 'image/png' });
-  
+
         // 서버로 전송
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('userId', currentUserId);
+
+        console.log('Frame 업로드 - 사용자 번호:', currentUserId); // 디버깅용
   
         ApiClient.post('/upload/frame', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -120,6 +148,10 @@ function App() {
             const result = res.data;
             setFrameImage({ url: dataUrl, filename: result.filename });
             console.log('Frame서버 응답:', result);
+          })
+          .catch(err => {
+            console.error('Frame 업로드 실패:', err);
+            parent.postMessage({ pluginMessage: { type: 'notify', message: 'Frame 업로드에 실패했습니다.' } }, '*');
           });
       }
       if (msg?.type === 'extracted-css') {
@@ -127,12 +159,12 @@ function App() {
         console.log('추출된 스타일 저장됨:', msg.styles);
       }
     };
-  }, []); //이미지 버튼 누르면 주소 출력되게
+  }, []); // ref 사용으로 의존성 제거
 
   // 참고 이미지 삭제 기능
   const removeImage = async (index: number, filename: string) => {
     try {
-      await ApiClient.delete(`/upload/ref/${filename}`);
+      await ApiClient.delete(`/upload/ref/${userId}/${filename}`);
       console.log('서버에서 삭제됨:', filename);
     } catch (err) {
       console.error('삭제 실패:', err);
@@ -142,6 +174,12 @@ function App() {
   };
   
   const onAddress = async () => {
+    // 사용자 번호 입력 확인
+    if (!userId.trim()) {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: '실험자 번호를 입력해주세요.' } }, '*');
+      return;
+    }
+
     // 참고 이미지 없는 경우
     if (previewList.length === 0) {
       parent.postMessage({ pluginMessage: { type: 'notify', message: '참고 이미지를 추가해주세요.' } }, '*');
@@ -164,16 +202,18 @@ function App() {
     setIsLoading(true); // 로딩 시작
 
     try{
+      const actualUserId = `PID_${userId}`;
       const refImagesData = previewList.map((item, idx) => ({
-        url: `/uploads/ref/${item.filename}`,
+        url: `/uploads/${actualUserId}/ref/${item.filename}`,
         styles: selectedStyles[idx] || []
       }));
       
-      const frameImagesUrl = frameImage ? `/uploads/frame/${frameImage.filename}` : null;
+      const frameImagesUrl = frameImage ? `/uploads/${actualUserId}/frame/${frameImage.filename}` : null;
 
       console.log(frameImagesUrl);
 
       const res = await ApiClient.post('/upload/address', {
+        userId,
         refImages: refImagesData,
         frameImage: frameImagesUrl,
         requirements,
@@ -198,18 +238,20 @@ function App() {
   //   setSelectedStyles(previewList.map(() => '색상')); // 기본값 '색상'
   // }, [previewList.length]);
 
-  // 초기화(다시 시작)
+  // 초기화(다시 시작) - 사용자 번호는 유지
   const resetAll = () => {
     setResultData(null);
     setPreviewList([]);
     setFrameImage(null);
     setSelectedStyles([]);
     setRequirements('');
+    // setUserId(''); // 사용자 번호는 유지
   };
 
   if (resultData) {
     return <Result 
-      data={resultData} 
+      data={resultData}
+      userId={userId}
       onBack={() => setResultData(null)} 
       onReset={resetAll} 
     />
@@ -219,6 +261,32 @@ function App() {
     <Content>
       <div>
         {isLoading && <LoadingModal isOpen={isLoading} />}
+        {/* 실험자 ID 입력 */}
+        <ColumnGap>
+          <TitleFont>
+            실험자 번호
+          </TitleFont>
+          <TextArea 
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            placeholder="실험자 번호를 입력하세요 (예: 1, 2, 3...)"
+            style={{ height: '40px', resize: 'none' }}
+          />
+        </ColumnGap>
+
+        {!userId.trim() && (
+          <div style={{ 
+            padding: '10px', 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7', 
+            borderRadius: '4px',
+            margin: '10px 0',
+            fontSize: '14px',
+            color: '#856404'
+          }}>
+            ⚠️ 실험자 번호를 먼저 입력해주세요. 번호 입력 후 이미지 업로드와 Frame 선택이 가능합니다.
+          </div>
+        )}
         {previewList.length > 0 && (
         <div style={{ marginTop: 10 }}>
           {previewList.map((item, idx) => (

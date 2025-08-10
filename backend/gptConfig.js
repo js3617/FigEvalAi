@@ -6,9 +6,9 @@ require('dotenv').config();
 
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY});
 
-async function compareFrameWithRef(frameFile, refFile, styles = [], requirements = '', frameStyles = null) {
-    const framePath = path.join(__dirname, 'uploads/frame', frameFile);
-    const refPath = path.join(__dirname, 'uploads/ref', refFile);
+async function compareFrameWithRef(frameFile, refFile, styles = [], requirements = '', frameStyles = null, userId = 'default') {
+    const framePath = path.join(__dirname, 'uploads', userId, 'frame', frameFile);
+    const refPath = path.join(__dirname, 'uploads', userId, 'ref', refFile);
 
     if (!fs.existsSync(framePath)) 
         throw new Error(`Frame not found: ${frameFile}`);
