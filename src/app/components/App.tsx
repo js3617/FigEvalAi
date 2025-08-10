@@ -9,7 +9,7 @@ import '../styles/ui.css';
 
 import { Btn, CancelBtn } from '../styles/Button'
 import { Label } from '../styles/Label'
-import { Content, RefContent, BtnWrap, BtnStartWrap, RowGap, ColumnGap, TextArea } from '../styles/Layout'
+import { Content, RefContent, BtnWrap, BtnStartWrap, RowGap, ColumnGap, TextArea, Input } from '../styles/Layout'
 import { TitleFont } from '../styles/Font'
 
 import LoadingModal from './LoadingModal';
@@ -266,11 +266,10 @@ function App() {
           <TitleFont>
             실험자 번호
           </TitleFont>
-          <TextArea 
+          <Input 
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            placeholder="실험자 번호를 입력하세요 (예: 1, 2, 3...)"
-            style={{ height: '40px', resize: 'none' }}
+            placeholder="실험자 번호를 입력하세요."
           />
         </ColumnGap>
 

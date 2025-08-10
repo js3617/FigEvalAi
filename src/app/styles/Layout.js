@@ -51,4 +51,12 @@ const TextArea = styled.textarea`
     resize: none;
 `;
 
-export { Content, RefContent, BtnWrap, BtnStartWrap, ColumnGap, RowGap, TextArea };
+const Input = styled.input`
+    width: 100%;
+    height: 40px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+`;
+
+export { Content, RefContent, BtnWrap, BtnStartWrap, ColumnGap, RowGap, TextArea, Input };
