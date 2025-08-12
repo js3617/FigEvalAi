@@ -46,6 +46,31 @@ function ensureUserDirectories(userId) {
   return { userDir, refDir, frameDir };
 }
 
+// 사용자 입력 정보 저장 함수
+function saveUserInput(userId, userInput) {
+  try {
+    const { userDir } = ensureUserDirectories(userId);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `user_input_${timestamp}.txt`;
+    const filePath = path.join(userDir, filename);
+    
+    const inputData = {
+      timestamp: new Date().toISOString(),
+      userId: userId,
+      ...userInput
+    };
+    
+    const content = JSON.stringify(inputData, null, 2);
+    fs.writeFileSync(filePath, content, 'utf8');
+    
+    console.log(`사용자 입력 정보 저장됨: ${filePath}`);
+    return filename;
+  } catch (error) {
+    console.error('사용자 입력 정보 저장 실패:', error);
+    throw error;
+  }
+}
+
 // multer 설정 - 임시 업로드 후 이동하는 방식으로 변경
 const tempStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -167,7 +192,7 @@ app.delete('/upload/cleanup/:userId', (req, res) => {
 });
 
 app.post("/upload/address", async (req, res) => {
-  const { userId: userNumber, refImages, frameImage, requirements, extractedStyles } = req.body;
+  const { userId: userNumber, refImages, frameImage, requirements, extractedStyles, selectedStyles } = req.body;
   const userId = userNumber === 'default' ? 'default' : `PID_${userNumber}`;
 
   console.log('=== GPT 비교 요청 시작 ===');
@@ -179,6 +204,23 @@ app.post("/upload/address", async (req, res) => {
   if (!userNumber) {
     console.log('에러: 사용자 번호가 없음');
     return res.status(400).json({ error: '사용자 번호가 필요합니다.' });
+  }
+
+  // 사용자 입력 정보 저장
+  try {
+    const userInput = {
+      refImages: refImages || [],
+      frameImage: frameImage,
+      requirements: requirements || '',
+      extractedStyles: extractedStyles || [],
+      selectedStyles: selectedStyles || []
+    };
+    
+    const savedFilename = saveUserInput(userId, userInput);
+    console.log('사용자 입력 정보 저장 완료:', savedFilename);
+  } catch (error) {
+    console.error('사용자 입력 정보 저장 실패:', error);
+    // 저장 실패해도 계속 진행
   }
 
   const frameFileName = path.basename(frameImage);

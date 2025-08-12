@@ -231,6 +231,7 @@ function App() {
         frameImage: frameImagesUrl,
         requirements,
         extractedStyles,
+        selectedStyles, // 선택된 스타일 정보 추가
       });
 
       const result = res.data;
