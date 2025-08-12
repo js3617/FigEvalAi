@@ -172,6 +172,19 @@ function App() {
     setPreviewList(prev => prev.filter((_, i) => i !== index));
     setSelectedStyles(prev => prev.filter((_, i) => i !== index));
   };
+
+  // Frame 이미지 삭제 기능
+  const removeFrameImage = async () => {
+    if (!frameImage) return;
+    
+    try {
+      await ApiClient.delete(`/upload/frame/${userId}/${frameImage.filename}`);
+      console.log('Frame 서버에서 삭제됨:', frameImage.filename);
+    } catch (err) {
+      console.error('Frame 삭제 실패:', err);
+    }
+    setFrameImage(null);
+  };
   
   const onAddress = async () => {
     // 사용자 번호 입력 확인
@@ -286,6 +299,41 @@ function App() {
             ⚠️ 실험자 번호를 먼저 입력해주세요. 번호 입력 후 이미지 업로드와 Frame 선택이 가능합니다.
           </div>
         )}
+
+        {/* 선택된 Frame 이미지 표시 */}
+        {frameImage && (
+          <div style={{ 
+            marginTop: 16, 
+            padding: '16px',
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '12px'
+            }}>
+              <TitleFont style={{
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+              선택된 Frame
+              </TitleFont>
+              <CancelBtn onClick={removeFrameImage}>
+                삭제
+              </CancelBtn>
+            </div>
+            <img
+              src={frameImage.url}
+              alt="selected-frame"
+              style={{ 
+                maxWidth: '100%', 
+                borderRadius: '6px',
+              }}
+            />
+          </div>
+        )}
         {previewList.length > 0 && (
         <div style={{ marginTop: 10 }}>
           {previewList.map((item, idx) => (
@@ -336,7 +384,7 @@ function App() {
               </RowGap>
 
               {/* 참고 이미지 삭제 버튼 */}
-              <Btn onClick={() => removeImage(idx, item.filename)}>삭제하기</Btn>
+              <CancelBtn onClick={() => removeImage(idx, item.filename)}>삭제</CancelBtn>
             </RefContent>
           ))}
         </div>

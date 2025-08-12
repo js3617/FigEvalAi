@@ -129,6 +129,22 @@ app.delete('/upload/ref/:userId/:filename', (req, res) => {
   });
 });
 
+// Frame 이미지 삭제 엔드포인트
+app.delete('/upload/frame/:userId/:filename', (req, res) => {
+  const { userId: userNumber, filename } = req.params;
+  const userId = userNumber === 'default' ? 'default' : `PID_${userNumber}`;
+  const filePath = path.join(__dirname, 'uploads', userId, 'frame', filename);
+
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.error('Frame 파일 삭제 실패:', err);
+      return res.status(500).send('Frame 파일 삭제 실패');
+    }
+    console.log(`Frame 파일 삭제 성공 (${userId}):`, filename);
+    res.send('Frame 파일 삭제 성공');
+  });
+});
+
 // 사용자별 모든 파일 정리 (개발용)
 app.delete('/upload/cleanup/:userId', (req, res) => {
   const { userId: userNumber } = req.params;
